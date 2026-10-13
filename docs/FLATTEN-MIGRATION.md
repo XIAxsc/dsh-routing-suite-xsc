@@ -29,7 +29,7 @@ dsh-routing-suite/
 
 ## 使用差异
 
-- 克隆不再需要 `--recurse-submodules`：`git clone https://github.com/yjh051108/dsh-routing-suite.git`
+- 克隆不再需要 `--recurse-submodules`：`git clone https://github.com/XIAxsc/dsh-routing-suite-xsc.git`
 - 预设安装目录：`.\preset\router-standard`（已平铺，无多余嵌套）
 - 组件版本随本仓库统一演进；上游独立仓库 `dsh-super-injector` / `dsh-router-standard` 仍保留（独立发布/镜像/归档待定）
 

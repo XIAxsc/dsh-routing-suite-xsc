@@ -31,9 +31,21 @@
 **唯一真源不变**：`preset/<id>/`（`preset.yml` + `agent.cordis.yml`）仍是真源，
 生成物不入库、不要手改，也不要再往 `.agent-presets/` 复制目录。
 
-验证：`build/verify-preset-bundle.mjs` 用 runtime 自带 YAML 解析器独立复验
-**18/18 PASS** —— 生成 `plugins` 与 `agent.cordis.yml` 的解析结果 **JSON 完全相等**
-（router-standard 19 / router-spec 18 / router-react 18 个顶层 entry）。
+**补丁（真机真装验证发现）**：`agent.cordis.yml` 里的
+`name: ./router-bootstrap-v34.mjs?v=88` 这类**相对引用**，其锚点是承载它的 patch 文件
+所在目录（代码证据 `cordis-plugin-include/src/index.ts:188`：
+`this.ctx.baseUrl = new URL('.', pathToFileURL(this.filename)).href`）。旧形态下
+`agent.cordis.yml` 与这些 `.mjs` 同目录所以能解析；迁移成单一 bundle patch 后，
+若不把 `.mjs` 一并放进 `<outDir>/`，preset 挂载时 import 会解析失败。
+生成器现已**自动复制锚点资产**（`localRefs` 收集 patch 引用的 `-vNN.mjs`，`localClosure`
+再收集它们 `from './router-core-vNN.mjs'` 的同目录依赖；三件 preset 引用的 basename
+全局唯一，故平铺到 `<outDir>/` 根即可，**无需改写 YAML**，语义与旧形态逐字一致）。
+生成后自带断言：patch 里每个 `./x.mjs` 都必须落在 `<outDir>/`。
+
+验证：`scripts/verify-preset-bundle.mjs` 用 runtime 自带 YAML 解析器独立复验
+**26/26 PASS** —— 生成 `plugins` 与 `agent.cordis.yml` 的解析结果 **JSON 完全相等**
+（router-standard 19 / router-spec 18 / router-react 18 个顶层 entry），且 4 个锚点引用
+全部存在、3 条 `router-bootstrap-vNN.mjs → router-core-vNN.mjs` 资产内依赖闭合。
 
 ## v1.27.0 — 隔离与并行（注意力工程 · 支柱4）
 

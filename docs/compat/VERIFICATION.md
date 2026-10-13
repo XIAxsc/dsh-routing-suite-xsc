@@ -237,12 +237,12 @@ git：分支 `fix/adapt-dsh-0.2.0-rc2`，**HEAD = main = `195273352f23bff7f9023e
 
 | # | 项 | 为什么没验 | 影响 |
 |---|----|-----------|------|
-| **R-1** | **真装到 DSH 后的端到端**（GUI 插件页、HMR、重启后由 `bundles` 接管） | **硬约束禁止安装** | 无法证明装配器与 DSH 的 *插件管理* 交互；但 V1 已用真实 loader 覆盖装配与卸载路径 |
+| ~~**R-1**~~ | ~~**真装到 DSH 后的端到端**（GUI 插件页、HMR、重启后由 `bundles` 接管）~~ | **已消除 —— 见 §10 V6**（用户 m01206/m01207 授权真装到 `web` profile） | — |
 | **R-2** | client 产物在**真实浏览器/GUI** 里的渲染 | 无浏览器环境 | 已由 V5 大幅收窄（契约 + 执行 + 渲染调用全部验证），仅剩 DOM/样式层未经真实渲染 |
 | **R-3** | `tsc` **真正的类型检查**（非 `--noCheck`，含跨包类型） | 部署版 runtime 无 `.d.ts`；本机无源码 checkout | 只能证明「无代码级错误（在缺类型的近似环境下）」 |
 | **R-4** | ModuleLoader **v2** 下 `loadCache` 嵌套层数、`oldJob?.module?.getNamespace()` | 需要路径触发（`dev_reload_package` 的特定分支），且 v2 内部结构非公开 | 影响插件「回滚/重载」路径，不影响装配与卸载 |
 | **R-5** | 插件中裸 `loadCache.set()` 与自身注释矛盾 | 需真实触发重载分支 | 同上 |
-| **R-6** | O3 preset 在 DSH 里**实际被加载并可选** | 需要把 bundle 装进 DSH（违反硬约束） | V3 只证明产物语义等价、包名全部真实存在 |
+| ~~**R-6**~~ | ~~O3 preset 在 DSH 里**实际被加载并可选**~~ | **已消除 —— 见 §10 V6**：`dsh --profile web --dump-config` 组合出 `preset-router-{standard,spec,react}` 三行，且真启动无 preset 声明错误 | 剩余仅「在会话里**挂载**并跑起来」这一步（见 §10 残余 R-9） |
 | **R-7** | `?v=` 查询串（`./router-bootstrap-v34.mjs?v=88`）是否被 Loader 容忍 | 需要真实装配 preset | O3 迁移的已知未知项 |
 | **R-8** | **分发包不自包含**：`injector/lib/index.js` 保留裸 `@deepseek-ai/dsh-tools` / `@deepseek-ai/schemastery` 导入，与 tsdown 注释宣称的「零外部依赖」不符 | 需要链接 peer 后再构建才能达成（`scripts/build.sh` 已实现，但裸 `npm install` 的 `prepare` 未走这条路） | 实测在部署树里可解析，**不阻断**；但在「peer 不可解析」的装配路径上会复现 tsdown 注释所描述的 issue #1 |
 
@@ -268,4 +268,66 @@ git：分支 `fix/adapt-dsh-0.2.0-rc2`，**HEAD = main = `195273352f23bff7f9023e
 - **硬约束未被触碰**；
 - 本轮新发现并修复 1 处真实代码缺陷（`TS7006` 隐式 any），新发现 1 处设计目标未达成（R-8，不阻断）。
 
-S3 的修复使插件**从「必然装配失败」变为「可装配、可运行、可卸载」**；剩余 8 项残余风险中，R-1 / R-6 由硬约束本身导致，无法在本次任务内消除。
+S3 的修复使插件**从「必然装配失败」变为「可装配、可运行、可卸载」**；剩余 8 项残余风险中，
+R-1 / R-6 由硬约束本身导致，在 S4 阶段无法消除 —— **其后由用户在 m01206 / m01207 明确授权真装，
+已在 §10（V6）消除**。
+
+---
+
+## 10. V6 · 真机真装验证（web profile · 用户授权）
+
+**这一节是硬约束唯一一次、经所有者批准的解禁**：用户 m01206 / m01207 明确要求在真机上把插件
+装到 **`web` profile** 做一次端到端验证，以消除 R-1 与 R-6。`desktop` profile 与正在运行的
+主 GUI **全程未被触碰**。
+
+### 10.1 装配证据
+
+- `dsh plugin --profile web add <repo>/injector` → **EXIT=0**（pnpm 11.22.0；lockfile 254 条目通过供应链策略）
+- `node scripts/gen-preset-bundle.mjs …` → EXIT=0；`dsh plugin --profile web add <bundle>` → **EXIT=0**
+- `dsh --profile web --dump-config` → **EXIT=0 / 77288 字节**，组合树含：
+  - `# == @dsh-external/dsh-super-injector` → `- id: dsh-super-injector` / `name: '@dsh-external/dsh-super-injector'`
+  - `# == dsh-router-presets` → `- id: preset-router-react` / `- id: preset-router-spec` / `- id: preset-router-standard`
+    （与官方 `preset-standard` / `preset-ptc` / `preset-minimal` / `preset-cordis` 并列，行内 `config.plugins` 即 `agent.cordis.yml` 内联结果）
+- web profile 变更面：`dependencies` 增加 2 条 `link:`（`@dsh-external/dsh-super-injector`、`dsh-router-presets`），
+  `dsh.profile.bundles` 尾部增加同名 2 项；**`cordis.patch.yml` 的 before/after diff 为空**。
+  快照：`docs/compat/live/`（`web-package.before.json` / `.after.json`、`web-cordis.patch.before.yml` / `.after.yml`）。
+
+### 10.2 真启动证据（`dsh web`，端口 43120，与桌面 GUI 的 19387 不冲突）
+
+| 探测 | 结果 |
+|------|------|
+| 启动行 | `dsh web: http://127.0.0.1:43120/?token=…` |
+| `GET /super-injector/api/list` | **200** `{"ok":true,"entries":[],"stats":{"inject":…,"reload":…,"uninject":…,"install":…}}` |
+| `GET /super-injector/api/nope` | 404，body 为插件自己的 `{"ok":false,"error":"not found: …"}` → 证明路由**已注册**，404 来自插件 handler 而非未注册 |
+| `GET /?token=…` | 200（40204 字节 HTML） |
+| stderr | **无** `super-injector` / `agent-preset` 相关错误（无 invalid plugin、无 duplicate preset ID、无缺服务） |
+
+`$DSH_HOME/super-injector/self-heal.log` 每次启动新增 `purge-stale-tools: dev_stage_…` 与
+**`client-meta-healed: client-modules pkgMeta 缓存已清并重解析（设置页插件管理 UI 注册）`**。
+后者证明 `ctx.get('clientModules')` 的 `pkgMeta.delete()` + `processOne()` **在真实 web profile 里成功执行**
+—— 这同时**消除了 S1 遗留的 `clientModules` 契约缺口（C8 / C14 的 UNVERIFIED）**。
+
+### 10.3 ★ 真装验证暴露的新缺陷 D14（已修）
+
+`agent.cordis.yml` 里的相对引用 `name: ./router-bootstrap-vNN.mjs`（含 `?v=N`）依赖
+「锚点 = 承载它的 patch 文件所在目录」这一规则（代码证据 `cordis-plugin-include/src/index.ts:188`
+`this.ctx.baseUrl = new URL('.', pathToFileURL(this.filename)).href`）。旧形态下 `agent.cordis.yml`
+与这些 `.mjs` 同目录所以能解析；迁移成单一 bundle patch 后，生成物里**没有这些 `.mjs`**，
+4 个引用（`router-bootstrap-v{34,10,17}.mjs`、`gitbash-executor.mjs`）会在 preset **挂载**时解析失败。
+
+修复：`scripts/gen-preset-bundle.mjs` 新增 `localRefs()`（收集 patch 引用的 `-vNN.mjs`）与
+`localClosure()`（再收集 `from './router-core-vNN.mjs'` 的同目录依赖），平铺复制到 `<outDir>/`
+（三件 preset 引用的 basename 全局唯一 → **YAML 无需改写**，语义与旧形态逐字一致），
+并在生成后断言「patch 里每个 `./x.mjs` 都落在 `<outDir>/`」。
+`scripts/verify-preset-bundle.mjs`（从 `build/` 迁入仓库）随即扩到 **26/26 PASS**
+（语义 JSON 等价 + 4 个锚点资产存在 + 3 条资产内依赖闭合）。
+
+### 10.4 剩余
+
+| # | 项 | 状态 |
+|---|---|---|
+| ~~R-1~~ | 真装端到端 | **已消除**（10.1 / 10.2） |
+| ~~R-6~~ | preset 在 DSH 内被加载 | **已消除**（组合树 3 行 + 真启动无声明错误） |
+| **R-9** | preset 在**会话内被挂载并跑起来**（真正 `import './router-bootstrap-vNN.mjs'`） | 需在 GUI 里新建一个 Router Standard 会话才触发；D14 已修掉该路径唯一的已知解析风险 |
+| R-7 | `?v=` 查询串被 Loader 容忍 | 随 R-9 在运行期确认（静态层面 `new URL('./x.mjs?v=88', base)` 合法） |
+| R-2 / R-3 / R-4 / R-5 / R-8 | 见 §8 | 未变 |

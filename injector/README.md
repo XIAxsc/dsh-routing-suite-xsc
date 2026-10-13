@@ -37,7 +37,7 @@ DSH 生态的 **BepInEx 式模组注入入口**：运行时把任意本地插件
 
 ### 方式 A：Release 包（推荐，免构建）
 
-从 [Releases](https://github.com/yjh051108/dsh-super-injector/releases) 下载
+从 [Releases](https://github.com/XIAxsc/dsh-routing-suite-xsc/releases) 下载
 `dsh-external-dsh-super-injector-0.0.1.tgz`，解压得到插件目录（含 `lib/` 与 `cordis.patch.yml`），然后：
 
 ```bash
@@ -51,7 +51,7 @@ dsh plugin --profile <profile> add <解压目录>
 ### 方式 B：git 装配
 
 ```bash
-dsh plugin --profile <profile> add github:yjh051108/dsh-super-injector
+dsh plugin --profile <profile> add github:XIAxsc/dsh-routing-suite-xsc
 ```
 
 > git 依赖拉取的是源码仓库（不含 `lib/`）；包内 `prepare` 钩子会在安装时自动
@@ -69,7 +69,7 @@ dsh plugin --profile <profile> add github:yjh051108/dsh-super-injector
 ```yaml
 - insert:
     - id: dsh-super-injector
-      name: '@yjh051108/dsh-super-injector'
+      name: '@XIAxsc/dsh-routing-suite-xsc'
       config: {}
 ```
 
@@ -265,5 +265,5 @@ minimal 99/96 vs standard 91 vs 两阶段 98/99、触发机制微探针、轨迹
 
 ---
 
-**仓库**：https://github.com/yjh051108/dsh-super-injector
-**Release**：https://github.com/yjh051108/dsh-super-injector/releases
+**仓库**：https://github.com/XIAxsc/dsh-routing-suite-xsc
+**Release**：https://github.com/XIAxsc/dsh-routing-suite-xsc/releases

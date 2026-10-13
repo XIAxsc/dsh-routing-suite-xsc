@@ -72,22 +72,22 @@ if [ ! -f "$PKG_DIR/lib/index.js" ]; then
     ok 'injector/lib 构建完成'
   else
     # 源码构建依赖私有 @deepseek-ai peer 包（package-lock 锁定），公共 npm registry 404 → 回退官方 Release tgz
-    SPI_VERSION="${SUPER_INJECTOR_VERSION:-0.3.3}"
+    SPI_VERSION="${SUPER_INJECTOR_VERSION:-0.3.4}"
     SPI_DIST_DIR="$DSH_HOME/external/dsh-super-injector"
-    SPI_TGZ="https://github.com/yjh051108/dsh-super-injector/releases/download/v${SPI_VERSION}/dsh-external-dsh-super-injector-${SPI_VERSION}.tgz"
+    SPI_TGZ="https://github.com/XIAxsc/dsh-routing-suite-xsc/releases/download/v${SPI_VERSION}/dsh-external-dsh-super-injector-${SPI_VERSION}.tgz"
     if [ ! -f "$SPI_DIST_DIR/lib/index.js" ]; then
-      warn "源码构建不可行——自动下载官方预构建 Release v${SPI_VERSION} ..."
+      warn "源码构建不可行——尝试下载本仓库预构建 Release v${SPI_VERSION}（本 fork 的 Release 若未附带 tgz 资产，会走到下面的源码构建指引）..."
       warn "  $SPI_TGZ"
       mkdir -p "$SPI_DIST_DIR"
       if curl -fL --retry 2 -m 120 "$SPI_TGZ" | tar -xzf - -C "$SPI_DIST_DIR" --strip-components=1; then
         if [ -f "$SPI_DIST_DIR/lib/index.js" ]; then
           ok "Release 包就位：$SPI_DIST_DIR"
         else
-          err "Release 包解压后缺少 lib/index.js——包内容异常，请到 https://github.com/yjh051108/dsh-super-injector/releases 核对"
+          err "Release 包解压后缺少 lib/index.js——包内容异常，请到 https://github.com/XIAxsc/dsh-routing-suite-xsc/releases 核对"
         fi
       else
         err "Release 下载/解压失败（$SPI_TGZ）——请手动下载 tgz 后重跑本脚本，或改用："
-        warn "  B. github: 装配（prepare 钩子自动构建）：dsh plugin --profile $PROFILE_NAME add github:yjh051108/dsh-super-injector"
+        warn "  B. github: 装配（prepare 钩子自动构建）：dsh plugin --profile $PROFILE_NAME add github:XIAxsc/dsh-routing-suite-xsc"
         warn "  C. 有 DSH 源码 checkout 时：DSH_CHECKOUT=<checkout> bash injector/scripts/build.sh 后再重跑本脚本"
         warn "     没有 checkout（安装版部署）时：DSH_RUNTIME_NODE_MODULES=<已安装 runtime 的 node_modules> bash injector/scripts/build.sh"
       fi

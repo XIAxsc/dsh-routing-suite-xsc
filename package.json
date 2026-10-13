@@ -35,11 +35,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yjh051108/dsh-routing-suite.git"
+    "url": "git+https://github.com/XIAxsc/dsh-routing-suite-xsc.git"
   },
-  "homepage": "https://github.com/yjh051108/dsh-routing-suite",
+  "homepage": "https://github.com/XIAxsc/dsh-routing-suite-xsc",
   "bugs": {
-    "url": "https://github.com/yjh051108/dsh-routing-suite/issues"
+    "url": "https://github.com/XIAxsc/dsh-routing-suite-xsc/issues"
   },
   "engines": { "node": ">=22" },
   "dsh": {

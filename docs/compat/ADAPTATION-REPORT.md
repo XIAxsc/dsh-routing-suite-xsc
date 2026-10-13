@@ -389,7 +389,75 @@ S4 在**不安装插件**的前提下，用「真实官方服务 + 进程内装�
 |---|---|
 | 分支 | `fix/adapt-dsh-0.2.0-rc2`（HEAD 即本次适配提交） |
 | 回滚点 | `main@195273352f23bff7f9023ebe2ec0cdbdf9c98f10`（未被改动） |
-| 提交规模 | 44 files changed, +9003 / −260 |
+| 提交规模 | 两次提交：① `8654c44` 适配主体（44 files, +9013 / −260）② D14 锚点资产修复 + 真装验证证据（12 files, +613 / −60）；合计 `main..HEAD` = 49 files, +9566 / −260 |
+| tag | `v0.3.4`（annotated）→ 本分支 HEAD |
 | 交付文档 | `docs/compat/`：`BASELINE.md`（S0）· `CONTRACT-MATRIX.md`（S1）· 本报告（S2–S5）· `VERIFICATION.md`（S4）· `raw/`（三方审计原文 + 解压证据） |
-| 交付脚本 | `scripts/verify-contract.mjs`（57 条契约断言）· `scripts/gen-preset-bundle.mjs`（preset 迁移生成器）· `build/s4-harness/*`（隔离装配验证）· `build/verify-preset-bundle.mjs` |
+| 交付脚本 | `scripts/verify-contract.mjs`（57 条契约断言）· `scripts/gen-preset-bundle.mjs`（preset 迁移生成器）· `scripts/verify-preset-bundle.mjs`（26 条 bundle 校验）· `build/s4-harness/*`（隔离装配验证） |
+
+---
+
+## 14. V6 · 真机真装验证结论（用户授权，消除 R-1 / R-6）
+
+用户指令（m01206 / m01207）明确授权把插件真装到真机 **`web` profile** 做一次端到端验证，
+以消除 S4 报告里由硬约束导致的 R-1（真装端到端）与 R-6（preset 在 DSH 内实际加载）。
+**这是硬约束的唯一一次、经所有者批准的解禁**；`desktop` profile 与运行中的主 GUI 全程未被触碰。
+
+### 14.1 做了什么
+
+| 步 | 动作 | 结果 |
+|----|------|------|
+| 1 | 快照 `profiles/web/{package.json,cordis.patch.yml}` | `docs/compat/live/web-package.before.json`、`web-cordis.patch.before.yml` |
+| 2 | `dsh plugin --profile web add <repo>/injector` | EXIT=0（pnpm 11.22.0，lockfile 254 条目通过供应链策略） |
+| 3 | `node scripts/gen-preset-bundle.mjs <repo> $DSH_HOME/external/dsh-router-presets router-{standard,spec,react}` | EXIT=0 |
+| 4 | `dsh plugin --profile web add <bundle>` | EXIT=0 |
+| 5 | `dsh --profile web --dump-config` | EXIT=0，77288 字节组合树 |
+| 6 | 真启动 `dsh web`（端口 43120，与桌面 GUI 的 19387 不冲突）并做 HTTP 探测 | 见 14.2 |
+
+### 14.2 证据
+
+- **装配**：`dsh --profile web --dump-config` 的组合树里出现
+  `# == @dsh-external/dsh-super-injector` → `- id: dsh-super-injector` / `name: '@dsh-external/dsh-super-injector'`；
+  以及 `# == dsh-router-presets` → `- id: preset-router-react` / `preset-router-spec` / `preset-router-standard`
+  （与官方 `preset-standard` / `preset-ptc` / `preset-minimal` / `preset-cordis` 并列），
+  行内 `config.plugins` 即 `agent.cordis.yml` 的内联结果。
+- **真启动无错**：`dsh web` 正常起服务并打印 `http://127.0.0.1:43120/?token=…`；
+  stderr 无 `super-injector` / `agent-preset` 相关错误（无 invalid plugin、无 duplicate preset ID、无缺 `agentPresets` 服务）。
+- **插件 HTTP 面真实可用**：`GET /super-injector/api/list` → **200** `{"ok":true,"entries":[],"stats":{…}}`；
+  未定义子路径 `/super-injector/api/nope` → 404 且 body 是插件自己的 `{"ok":false,"error":"not found: …"}`
+  （证明 404 来自插件 handler，而非路由未注册）；带 token 的 `/` → 200（40204 字节 HTML）。
+- **插件 `apply()` 真实执行**：`$DSH_HOME/super-injector/self-heal.log` 每次启动新增
+  `purge-stale-tools: …` 与 **`client-meta-healed: client-modules pkgMeta 缓存已清并重解析（设置页插件管理 UI 注册）`** ——
+  后者证明 `ctx.get('clientModules')` 的 `pkgMeta.delete()` + `processOne()`
+  **在真实 web profile 里成功执行**，这也**顺带消除了 S1 遗留的 `clientModules` 契约缺口（C8 / C14 的 UNVERIFIED）**。
+- **web profile 变更面**：仅 `dependencies` 增加两条 `link:`（`@dsh-external/dsh-super-injector`、`dsh-router-presets`），
+  `dsh.profile.bundles` 数组尾部增加同名两项；**`cordis.patch.yml` 零改动**（before/after diff 为空）。
+  快照见 `docs/compat/live/web-package.after.json`。
+
+### 14.3 ★ 验证中发现并修复的新缺陷（D14）
+
+**D14：preset bundle 必须随身携带锚点 `.mjs` 资产。**
+`agent.cordis.yml` 里有 `name: ./router-bootstrap-v34.mjs?v=88` 这类相对引用；
+cordis 的 patch 方言规定相对路径锚点是**承载它的 patch 文件所在目录**
+（代码证据 `cordis-plugin-include/src/index.ts:188` `this.ctx.baseUrl = new URL('.', pathToFileURL(this.filename)).href`）。
+旧形态下 `agent.cordis.yml` 与这些 `.mjs` 同目录，所以能解析；迁移成单一 bundle patch 后，
+`scripts/gen-preset-bundle.mjs` 生成的目录里**只有 `cordis.patch.yml` + `package.json`**，
+4 个相对引用（`router-bootstrap-v{34,10,17}.mjs`、`gitbash-executor.mjs`）在 preset **挂载**时会解析失败。
+
+修复：生成器新增 `localRefs()`（收集 patch 引用的 `-vNN.mjs`）与 `localClosure()`
+（再收集 `from './router-core-vNN.mjs'` 的同目录依赖）并平铺复制到 `<outDir>/`；
+因三件 preset 引用的 basename 全局唯一，**YAML 无需改写**，语义与旧形态逐字一致。
+生成器自带断言「patch 里每个 `./x.mjs` 必须落在 `<outDir>/`」。
+校验器 `scripts/verify-preset-bundle.mjs`（由 `build/` 迁入、现随仓库）扩到 **26/26 PASS**
+（语义 JSON 等价 + 4 个锚点资产存在 + 3 条资产内依赖闭合）。
+
+### 14.4 残余（新增 R-9，R-1/R-6 已消除）
+
+| # | 项 | 状态 |
+|---|---|---|
+| ~~R-1~~ | 真装端到端 | **已消除**（14.2） |
+| ~~R-6~~ | preset 在 DSH 内被加载 | **已消除**（组合树 + 真启动无声明错误） |
+| **R-9** | preset 在会话里**被挂载并跑起来**（`AgentPresets.recompose` 真正 `import './router-bootstrap-vNN.mjs'`） | 仍需在 GUI 里新建一个 Router Standard 会话才能真正触发；D14 已把该路径的**唯一已知解析风险**（锚点资产缺失）修掉 |
+| R-7 | `?v=` 查询串是否被 Loader 容忍 | 随 R-9 一起才能在运行期确认（静态层面 `new URL('./x.mjs?v=88', base)` 合法，已确认） |
+| R-8 | 分发包非零外部依赖 | 未变 |
+| R-2 / R-3 / R-4 / R-5 | 见 §12.2 | 未变 |
 

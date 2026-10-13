@@ -13,7 +13,7 @@
 
 dsh-super-injector 是 DSH 的**插件注入器**：装好它之后，任意本地插件包都能**免重启**注入运行中的 DSH（`dev_inject_plugin` 一句话的事），还自带热重载、自重载、卸载即净、一键自检。
 
-它本身也是一个标准 DSH 插件（`@yjh051108/dsh-super-injector`），所以安装它 = 走 DSH 官方装配路径一次，之后万物皆可注入。
+它本身也是一个标准 DSH 插件（`@XIAxsc/dsh-routing-suite-xsc`），所以安装它 = 走 DSH 官方装配路径一次，之后万物皆可注入。
 
 ---
 
@@ -21,7 +21,7 @@ dsh-super-injector 是 DSH 的**插件注入器**：装好它之后，任意本�
 
 ### 第 1 步：下载
 
-从 [Releases](https://github.com/yjh051108/dsh-super-injector/releases) 下载最新版：
+从 [Releases](https://github.com/XIAxsc/dsh-routing-suite-xsc/releases) 下载最新版：
 
 ```
 dsh-external-dsh-super-injector-<版本>.tgz
@@ -56,7 +56,7 @@ dsh plugin --profile <profile> add ~/dsh-super-injector
 ## 3. 方式 B：git 装配
 
 ```bash
-dsh plugin --profile <profile> add github:yjh051108/dsh-super-injector
+dsh plugin --profile <profile> add github:XIAxsc/dsh-routing-suite-xsc
 ```
 
 重启 web 后同上验证。（git 安装只取源码，构建由已提交的 `prepare` 脚本自动完成——
@@ -91,7 +91,7 @@ npm install --legacy-peer-deps --no-audit --no-fund
 # overrides, disables, and insert lists; !!js expressions allowed).
 
 - id: dsh-super-injector
-  name: '@yjh051108/dsh-super-injector'
+  name: '@XIAxsc/dsh-routing-suite-xsc'
   config: {}
 ```
 
@@ -107,11 +107,11 @@ mkdir -p ~/.dsh/profiles/<profile>/node_modules/@dsh-external
 
 ```bash
 # Windows（junction，无需管理员；用 Git Bash 执行）
-ln -s /你的路径/dsh-super-injector ~/.dsh/profiles/<profile>/node_modules/@yjh051108/dsh-super-injector
+ln -s /你的路径/dsh-super-injector ~/.dsh/profiles/<profile>/node_modules/@XIAxsc/dsh-routing-suite-xsc
 # 或 cmd（Windows 原生）
 mklink /J "%USERPROFILE%\.dsh\profiles\<profile>\node_modules\@dsh-external\dsh-super-injector" "D:\你的路径\dsh-super-injector"
 # Linux/macOS（软链）
-ln -s /你的路径/dsh-super-injector ~/.dsh/profiles/<profile>/node_modules/@yjh051108/dsh-super-injector
+ln -s /你的路径/dsh-super-injector ~/.dsh/profiles/<profile>/node_modules/@XIAxsc/dsh-routing-suite-xsc
 ```
 
 > ⚠️ `cordis.patch.yml` 必须是**单一顶层值**（要么 `[]`，要么 `- id:` 列表，不能两者混存——否则 YAML 解析报错）。
@@ -201,14 +201,14 @@ dev_self_test         → 一键回归 8 项，期望全部 PASS（含注入/热
 
 ```bash
 # 1. 从 profile bundles 移除（官方路径）
-dsh plugin --profile <profile> remove @yjh051108/dsh-super-injector
+dsh plugin --profile <profile> remove @XIAxsc/dsh-routing-suite-xsc
 
 # 2. 清理 profile patch 里的 disabled/配置条目（若存在）
 #    编辑 ~/.dsh/profiles/<profile>/cordis.patch.yml，删除含 dsh-super-injector 的条目，
 #    保持文件为单一顶层值（[] 或列表）
 
 # 3. 删除 node_modules 链接（若存在）
-rm -rf ~/.dsh/profiles/<profile>/node_modules/@yjh051108/dsh-super-injector
+rm -rf ~/.dsh/profiles/<profile>/node_modules/@XIAxsc/dsh-routing-suite-xsc
 
 # 4. 清理运行时注入清单（若走的是运行时注入）
 #    重启后由 agent 执行 dev_uninject_plugin，或直接删除 ~/.dsh/super-injector/registry.json
@@ -224,5 +224,5 @@ rm -rf ~/.dsh/profiles/<profile>/node_modules/@yjh051108/dsh-super-injector
 
 ---
 
-**仓库**：https://github.com/yjh051108/dsh-super-injector
-**Releases**：https://github.com/yjh051108/dsh-super-injector/releases
+**仓库**：https://github.com/XIAxsc/dsh-routing-suite-xsc
+**Releases**：https://github.com/XIAxsc/dsh-routing-suite-xsc/releases

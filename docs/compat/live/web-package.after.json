@@ -1,0 +1,40 @@
+{
+  "name": "dsh-profile-web",
+  "private": true,
+  "dependencies": {
+    "@changfenhuang/dsh-annotation": "^1.4.11",
+    "@dsh-external/dsh-super-injector": "link:D:/WorkSpace/AgentWorks/DSH/dsh-routing-suite-xsc/injector",
+    "@furongjun1999/dsh-memory": "0.7.4",
+    "@linxin666/dsh-web-all": "0.4.5",
+    "@yejiming/dsh-data-agent": "^0.2.2",
+    "dsh-better-sidebar": "^0.24.1",
+    "dsh-context": "^0.64.0",
+    "dsh-free-search": "^0.7.5",
+    "dsh-mnemon": "^0.5.24",
+    "dsh-router-presets": "link:D:/WorkSpace/Agents/DSH/external/dsh-router-presets",
+    "dsh-whale-widget": "github:MeteorNOX/DeepSeek-Balance-Whale-Widget#770d3f55ff40284eb244fff33fc9ed4654be8a45",
+    "dshmarket": "^1.66.9"
+  },
+  "dsh": {
+    "profile": {
+      "bundles": [
+        "@deepseek-ai/dsh-base",
+        "@deepseek-ai/dsh-web-app",
+        "dshmarket",
+        "dsh-context",
+        "dsh-whale-widget",
+        "@deepseek-ai/dsh-experimental-agent-team-profile",
+        "@deepseek-ai/dsh-experimental-auto-review",
+        "dsh-free-search",
+        "@changfenhuang/dsh-annotation",
+        "dsh-better-sidebar",
+        "@yejiming/dsh-data-agent",
+        "@furongjun1999/dsh-memory",
+        "@linxin666/dsh-web-all",
+        "@dsh-external/dsh-super-injector",
+        "dsh-router-presets"
+      ],
+      "patchReload": "live"
+    }
+  }
+}

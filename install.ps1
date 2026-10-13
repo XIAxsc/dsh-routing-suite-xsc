@@ -34,8 +34,8 @@ if (-not (Test-Path (Join-Path $injector 'lib\index.js'))) {
   }
   if (-not (Test-Path (Join-Path $injector 'lib\index.js'))) {
     Write-Host '自动构建不可行——注入器请改用以下方式装配：' -ForegroundColor Yellow
-    Write-Host '  A. Release tgz（预构建，推荐）：https://github.com/yjh051108/dsh-super-injector/releases' -ForegroundColor Yellow
-    Write-Host "  B. github: 装配（prepare 钩子自动构建）：dsh plugin --profile $profileName add github:yjh051108/dsh-super-injector" -ForegroundColor Yellow
+    Write-Host '  A. Release tgz（预构建，推荐）：https://github.com/XIAxsc/dsh-routing-suite-xsc/releases' -ForegroundColor Yellow
+    Write-Host "  B. github: 装配（prepare 钩子自动构建）：dsh plugin --profile $profileName add github:XIAxsc/dsh-routing-suite-xsc" -ForegroundColor Yellow
     Write-Host '  （构建需要依赖来源：源码 checkout 用 DSH_CHECKOUT，安装版用 DSH_RUNTIME_NODE_MODULES）' -ForegroundColor DarkGray
   } else {
     Write-Host 'injector/lib 构建完成' -ForegroundColor Green

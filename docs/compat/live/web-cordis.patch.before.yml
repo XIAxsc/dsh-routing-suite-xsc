@@ -1,0 +1,111 @@
+# Your patch layer for this dsh profile, applied after every bundle layer:
+# a top-level YAML array of loader patch entries (id-targeted config
+# overrides, disables, and insert lists; `!!js` expressions allowed).
+- id: ui-theme
+  name: "@deepseek-ai/dsh-client-ui-theme"
+  config:
+    preference: light
+- id: web-ui-skin-center
+  name: "@linxin666/dsh-client-ui-skin-center"
+  config:
+    skin-custom-theme:
+      applied: false
+    skin-wallpaper:
+      enabled: false
+- id: ui-settings-general
+  name: "@deepseek-ai/dsh-client-ui-settings-general"
+  config:
+    welcomeNoticeVersion: 2026-09-28.1
+- id: ui-settings-account
+  name: "@deepseek-ai/dsh-client-ui-settings-account"
+  config:
+    version: 1
+    step: done
+    purpose: development
+    process: detailed
+    completion: completed
+    usage: detailed
+    developerTools: true
+- id: ui-chat
+  name: "@deepseek-ai/dsh-client-ui-chat"
+  config:
+    transcriptView: detailed
+    performanceUsage: detailed
+- id: ui-settings
+  name: "@deepseek-ai/dsh-client-ui-settings"
+  config:
+    enabled: true
+- id: agent-default-model
+  name: "@deepseek-ai/dsh-agent-default-model"
+  config:
+    provider: deepseek-account
+    model: deepseek-flash
+    reasoningEffort: max
+- id: web-ui-pet
+  name: "@linxin666/dsh-pet"
+  config:
+    visible: false
+    size: 160
+    right: 24
+    bottom: 20
+    petId: whale-girl-refined
+  disabled: true
+
+- id: web-ui-compat
+  disabled: false
+- id: web-ui-settings
+  disabled: false
+- id: web-ui-plugin-manager
+  disabled: false
+- id: web-ui-market
+  disabled: false
+- id: web-ui-task-board
+  disabled: false
+- id: web-ui-git-graph
+  disabled: false
+- id: web-ui-update
+  disabled: false
+- id: web-ui-skill-explorer
+  disabled: false
+- id: web-ui-session-archive
+  disabled: false
+- id: web-ui-model-capabilities
+  disabled: false
+- id: web-ui-i18n
+  disabled: false
+- id: web-ui-community-plugins
+  disabled: false
+- id: web-ui-pet
+  disabled: true
+- id: web-ui-preset-center
+  disabled: false
+- id: web-ui-skin-center
+  disabled: false
+- id: web-ui-usage
+  disabled: true
+- id: better-sidebar
+  name: dsh-better-sidebar
+  config:
+    agentOpenTools: true
+- id: web-ui-remote-web-ui
+  name: "@linxin666/dsh-web-all/remote-web-ui"
+  config:
+    plugin: "@linxin666/dsh-remote-web-ui"
+    enabled: false
+    lanBind: false
+
+# --- remote-web-ui lan-bind block (managed - do not edit) ---
+- id: webserver
+  name: '@deepseek-ai/dsh-host-webserver'
+  config:
+    host: '127.0.0.1'
+    port: 43120
+    compression: gzip
+    compressionLevel: 1
+    compressionThresholdBytes: 1024
+- id: web-ui-ssh
+  disabled: false
+- id: web-ui-liangshen
+  disabled: false
+
+# --- end remote-web-ui lan-bind block ---
