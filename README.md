@@ -25,16 +25,46 @@
 ## 一键安装
 
 ```powershell
-dsh plugin --profile web add github:yjh051108/dsh-routing-suite
+dsh plugin --profile <profile> add github:yjh051108/dsh-routing-suite
 ```
 
 > 本套装已含上述三组件（injector/preset/graded 均为仓库内普通目录，内容直接入库）；
 > graded 发布物：`graded/dsh-external-dsh-graded-mode-0.0.1-rc1.tgz`（或 Release 附件）。
 
-**DSH Target**：`>=0.1.0-rc.6 <0.2.0`（已跟进 rc.8 / 0.1.1-rc.2 / 0.1.2-alpha.1）
+**DSH Target**：`>=0.1.0-rc.6 <0.3.0`（已跟进 rc.8 / 0.1.1-rc.2 / 0.1.2-alpha.1 / **0.2.0-rc.2**）
+
+> ⚠️ 原声明上界为 `<0.2.0`，而当前 runtime 是 `0.2.0-rc.2`（0.2.0 的预发布版），
+> 按 semver 落在区间外 —— 已上移到 `<0.3.0`，并据此完成 0.2.x 适配（v0.3.4）。
 
 > DSH 目前处于 developer preview，官方明示会有破坏性变更（breaking changes）。
 > 本仓库的版本跟进记录见 `preset/CHANGELOG.md`。
+
+## DSH 兼容矩阵
+
+| DSH 版本 | 状态 | 本套装版本 | 验证 | 备注 |
+|---|---|---|---|---|
+| **`0.2.0-rc.2`** | ✅ **已验证适配** | injector **v0.3.4** · preset v0.3.0 · graded 0.0.1-rc1 | S4 六层隔离验证全绿：内核契约 **57/57** · 进程内装配 **26/26 × 3 目标** · client 冒烟 **18/18** · preset 迁移 **18/18** | 本版适配目标。运行时 `cordis` 4.0.4 / `cordis-plugin-loader` 1.0.5 / `schemastery` 3.18.4 / Node v24（ModuleLoader v2） |
+| `0.1.x`（rc.6 – 0.1.2-alpha.1） | ✅ 曾支持 | v0.3.0 – v0.3.3 | 历史实测 | 0.1.x 上 `Entry._dispose` 等私有 API 尚存在；0.2.x 已移除 |
+| `<0.1.0-rc.6` | ❌ 不支持 | — | — | 低于首个适配基线 |
+| `>=0.3.0` | ⚠️ **未验证** | — | — | 未测试；0.2.x 之后契约面可能再次变更 |
+
+### 关键契约依赖（任一被破坏都需重新适配）
+
+| 契约 | 权威位置 | 本套装的用法 |
+|---|---|---|
+| `FiberState` 是 `const enum`（0..5，运行时读不到名字） | `cordis/src/fiber.ts:147-154` | 插件硬编码 `FIBER_NAMES` 数组 —— 唯一可行做法 |
+| **`Entry` 没有 `_dispose`**（0.2.x 起） | `cordis-plugin-loader/src/config/entry.ts` | 必须用官方 `entry.fiber.dispose()`（`entry.ts:135` / `group.ts:40`） |
+| `RegistryService.delete(plugin)` 的入参是 **plugin**，不是 fiber | `cordis/src/registry.ts:258-267` | 传 fiber 会 `resolve()` 得 undefined → 静默 no-op |
+| `EntryTree.entries()/create()/import()`、`Loader.unwrapExports()`、`Loader.internal.loadCache` | `cordis-plugin-loader/src/{index,config/tree,internal}.ts` | 注入器热重载与自愈路径 |
+| `defineTool` + `ToolRegistry.register` 强制 `output { schema, render }` | `dsh-tools/lib/index.js:838-864, 2878-2889` | 19 个 `dev_*` 工具 |
+| `webServer.register()` 返回 disposer；`kind: 'exact' \| 'prefix'` | `dsh-host-webserver/lib/index.js:177-184` | 路由 `/super-injector/api` 挂 `ctx.effect` |
+| `ctx.slots.register(options, component)` 是**两参**形态 | `dsh-client-ui-slots/lib/index.js:163-219` | 插件管理 UI 注册进 `settings.section`（`options.component` 永不被读） |
+| `window.__ModuleLoader__.load({ id, factory })` | `dsh-cordis-client-runner` 官方模板 | client 产物 banner |
+| `dsh.client` 由 `dsh-client-modules` 消费；模块图**只按 `external` 建边** | `dsh-client-modules/lib/index.js:415-437` | `inject` 里的 `dsh-client-runtime` 是惰性遗留声明（与已安装的 `dsh-prompt` 逐字相同） |
+| preset 是 `@deepseek-ai/dsh-agent-preset` **声明行**，由 bundle patch 承载 | `editing-cordis-compositions/SKILL.md:8` | `.agent-presets/` 旧形态已无人读取（`SKILL.md:70`） |
+
+> 不安装、不写 DSH profile 的复验命令：`node scripts/verify-contract.mjs`
+> （当场 `require` 安装版 runtime，逐条断言上表契约）。
 
 ## 安装链（三步）
 
@@ -51,28 +81,30 @@ cd dsh-routing-suite
 
 ```powershell
 # 步骤 1：装配注入器（官方装配，重启后由 bundles 接管）
-dsh plugin --profile web add .\injector
-# dsh 不在 PATH 时：npx '@deepseek-ai/dsh' plugin --profile web add .\injector
+dsh plugin --profile <profile> add .\injector
+# dsh 不在 PATH 时：npx '@deepseek-ai/dsh' plugin --profile <profile> add .\injector
 
-# 步骤 2：安装 router 预设（每个预设目录平铺复制到 .agent-presets 下，DSH 只扫一级子目录）
-$target = Join-Path $env:USERPROFILE '.dsh\.agent-presets\router-standard'
-Copy-Item -Recurse .\preset\router-standard $target
-
-$target = Join-Path $env:USERPROFILE '.dsh\.agent-presets\router-spec'
-Copy-Item -Recurse .\preset\router-spec $target
+# 步骤 2：安装 router 预设（DSH 0.2.x：preset 是 @deepseek-ai/dsh-agent-preset 的声明行，由 bundle patch 承载）
+# 旧形态 $DSH_HOME/.agent-presets/<id>/ 目录在 0.2.x 已无人读取 —— 不要再复制目录。
+$bundle = Join-Path $env:USERPROFILE '.dsh\external\dsh-router-presets'
+node .\scripts\gen-preset-bundle.mjs . $bundle router-standard router-spec
+dsh plugin --profile <profile> add $bundle
 
 # 步骤 3：重启 DSH → 新会话选择 Router Standard / Router Spec (experimental)
 ```
 
-> 注意：不要复制 `preset` 整目录（会多套一层，DSH 发现不了预设）。
+> 注意：`preset/<id>/` 仍是**唯一真源**；`scripts/gen-preset-bundle.mjs` 把
+> `preset.yml` 的 `name/description/order` 与 `agent.cordis.yml` 的 entry 列表
+> 原样内联成 `@deepseek-ai/dsh-agent-preset` 声明行。不要手改生成物，也不要
+> 再往 `.agent-presets/` 里复制目录。
 
 ## 组件
 
 | 路径 | 仓库 | 版本 | 作用 |
 |---|---|---|---|
-| `injector/` | [dsh-super-injector](https://github.com/yjh051108/dsh-super-injector) | [v0.3.3](https://github.com/yjh051108/dsh-super-injector/releases/tag/v0.3.3) | 运行时注入器：dev_* 工具全家桶（注入/热重载/侧挂转正/卸载/路由自愈）；`github:` 装配由 prepare 钩子自动构建 |
+| `injector/` | [dsh-super-injector](https://github.com/yjh051108/dsh-super-injector) | [v0.3.3](https://github.com/yjh051108/dsh-super-injector/releases/tag/v0.3.3) → **v0.3.4（未发版，DSH 0.2.x 适配）** | 运行时注入器：dev_* 工具全家桶（注入/热重载/侧挂转正/卸载/路由自愈）；`github:` 装配由 prepare 钩子自动构建 |
 | `preset/` | [dsh-router-standard](https://github.com/yjh051108/dsh-router-standard) | [v0.3.0 … 主线 v1.19.1/v34](https://github.com/yjh051108/dsh-router-standard/releases/tag/v0.3.0) | 思维模式路由预设：router-standard（分类 persona + 完整 sections）/ router-spec（深度思考优先）。router-pro 为规划中（planned），未随 v0.3.0 发布 |
-| `graded/` | [dsh-graded-mode](https://github.com/yjh051108/dsh-routing-suite/tree/main/graded) | [v0.0.1-rc1](https://github.com/yjh051108/dsh-routing-suite/releases/tag/v0.0.1-rc1) | graded 模式：会话级两级任务协议（脑暴选择题对齐 → 北极星定稿 → 规格化计划 → 按规格注入 → 打卡制 → 组收官 → 终验）；6 工具 + 三模式 + 小类模式粒度 + 红队门 + 审计端点；`graded/dsh-graded-mode-3.2.0.tgz` 可直接 `dsh plugin --profile web add` |
+| `graded/` | [dsh-graded-mode](https://github.com/yjh051108/dsh-routing-suite/tree/main/graded) | [v0.0.1-rc1](https://github.com/yjh051108/dsh-routing-suite/releases/tag/v0.0.1-rc1) | graded 模式：会话级两级任务协议（脑暴选择题对齐 → 北极星定稿 → 规格化计划 → 按规格注入 → 打卡制 → 组收官 → 终验）；6 工具 + 三模式 + 小类模式粒度 + 红队门 + 审计端点；`graded/dsh-external-dsh-graded-mode-0.0.1-rc1.tgz` 可直接 `dsh plugin --profile <profile> add` |
 
 > 版本号以各组件仓库的 git tag 为准（列内链接直达对应 Release）。
 

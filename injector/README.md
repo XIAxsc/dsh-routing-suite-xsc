@@ -7,6 +7,14 @@
 > 本版本按 [docs/SPEC.md](./docs/SPEC.md)（基于 DSH 0.1.0-rc.6 源码语义推导的
 > 设计契约）重构自重载为**官方 REPLACE 结构**：工具只排程、绝不亲自自杀；
 > reboot 走 `entry._dispose`（官方 `_disposing` 豁免）+ 失败自动 rollback。
+>
+> ⚠️ **DSH 0.2.x 更正（v0.3.4）**：上面这句在 DSH 0.2.0-rc.2 上**不成立**。
+> `cordis-plugin-loader@1.0.5` 的 `Entry` 类**根本没有 `_dispose`**（全包 grep
+> `_dispose` 零命中；`export class Entry {` 也不继承任何基类），所以旧代码里
+> `typeof entry._dispose !== 'function'` 的守卫**必然抛错**。官方等价路径是
+> `entry.fiber.dispose()`——`entry.ts` 的 update 分支（`:135`）与 `group.ts`
+> 的 remove（`:40`）都这么用。v0.3.4 已改用该路径；`docs/SPEC.md` 中所有
+> `_dispose` / `_disposing` 的表述同样按此更正。
 > 从此注入器的一切行为都有源码依据，不再依赖经验补丁。
 >
 > **里程碑回顾**：
@@ -34,7 +42,7 @@ DSH 生态的 **BepInEx 式模组注入入口**：运行时把任意本地插件
 
 ```bash
 # 官方装配（重启后由 bundles 接管，生产态）
-dsh plugin --profile web add <解压目录>
+dsh plugin --profile <profile> add <解压目录>
 
 # 或运行时注入（免重启，开发态；需任一环境已常驻注入器）
 # 对 AI 说：dev_inject_plugin <解压目录>
@@ -43,7 +51,7 @@ dsh plugin --profile web add <解压目录>
 ### 方式 B：git 装配
 
 ```bash
-dsh plugin --profile web add github:yjh051108/dsh-super-injector
+dsh plugin --profile <profile> add github:yjh051108/dsh-super-injector
 ```
 
 > git 依赖拉取的是源码仓库（不含 `lib/`）；包内 `prepare` 钩子会在安装时自动
@@ -56,7 +64,7 @@ dsh plugin --profile web add github:yjh051108/dsh-super-injector
 > `dsh-super-injector`，与下方手动 `insert` 撞同一个 loader entry id，会报
 > `duplicate loader entry id`。走方式 A/B 装配后请勿再加这一条。
 
-在 `~/.dsh/profiles/web/cordis.patch.yml` 添加：
+在 `~/.dsh/profiles/<profile>/cordis.patch.yml` 添加：
 
 ```yaml
 - insert:
@@ -160,7 +168,7 @@ dsh plugin --profile web add github:yjh051108/dsh-super-injector
 ### 30 行写一个"会思考的插件"（守护循环最小示例）
 
 ```ts
-import type { Context } from 'cordis'
+import type { Context } from '@deepseek-ai/cordis'
 import type LlmService from '@deepseek-ai/dsh-llm'
 import { createUserMessage, ReasoningEffortId } from '@deepseek-ai/dsh-llm'
 
@@ -241,7 +249,7 @@ minimal 99/96 vs standard 91 vs 两阶段 98/99、触发机制微探针、轨迹
 
 ## 机制
 
-1. **junction 链接**插件包到 `~/.dsh/profiles/web/node_modules`（loader 标准解析路径）；
+1. **junction 链接**插件包到 `~/.dsh/profiles/<profile>/node_modules`（loader 标准解析路径）；
 2. **`ctx.loader.create({ name, config })`** 运行时装配（完整 ctx）；
 3. **清单持久化**（`~/.dsh/super-injector/registry.json`），重启后自动恢复注入；
 4. **client 联动**：注入/重载后清除 entry disabled 标记并补扫 client 模块表（`client-modules.processOne`），浏览器端 bundle rev 联动更新。

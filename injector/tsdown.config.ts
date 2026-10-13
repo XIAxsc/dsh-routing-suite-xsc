@@ -3,11 +3,19 @@ import type { UserConfig } from 'tsdown'
 
 const PLUGIN_ID = '@dsh-external/dsh-super-injector'
 
+// ⚠️ DSH 0.2.x 适配（v0.3.4）：裸名 `cordis` / `schemastery` 在 0.2.0-rc.2 的运行时不
+// 存在（真实包名是 `@deepseek-ai/cordis` 等）。浏览器模块表（dsh-web-frontend 的
+// rM() 种子表）只登记 9 项：react、react/jsx-runtime、react-dom、react-dom/client、
+// @deepseek-ai/cordis、@deepseek-ai/dsh-client-store、@deepseek-ai/dsh-client-ui-slots、
+// @deepseek-ai/dsh-client-ui-primitives、@deepseek-ai/dsh-client-ui-dockkit。
+// 因此 external 必须逐字等于种子表里的名字，裸名会被当成真实依赖打进产物。
+// ⚠️ 已移除 '@deepseek-ai/dsh-client-runtime/client'：0.2.x 没有该包（止于 0.1.1-rc.2），
+// 一旦被 import，宿主会抛 "missed the module table" 并整体崩掉插件页。需要它提供的
+// 能力时，改用种子表里的包（dsh-client-store / dsh-client-ui-slots / dsh-client-ui-primitives）。
 const CLIENT_EXTERNALS = [
   'react', 'react/jsx-runtime', 'react-dom', 'react-dom/client',
-  'cordis',
+  '@deepseek-ai/cordis',
   '@deepseek-ai/dsh-client-ui-slots',
-  '@deepseek-ai/dsh-client-runtime/client',
 ]
 
 const clientBundle: UserConfig = {

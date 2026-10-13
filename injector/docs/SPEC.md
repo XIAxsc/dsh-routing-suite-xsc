@@ -4,6 +4,34 @@
 > `vendor/cordis/src/{registry.ts, fiber.ts}`（DSH 0.1.0-rc.6）。
 > 本文是注入器与 DSH 机制的**正确契约**——所有经验补丁都应映射回这里，
 > 与源码语义冲突的做法即为 bug 来源。
+>
+> ---
+>
+> ## ⚠️ 0.2.x 更正（v0.3.4 校对，与正文冲突时以本节为准）
+>
+> 本文基于 DSH **0.1.0-rc.6**。在 **0.2.0-rc.2** 上，`cordis-plugin-loader@1.0.5` 的
+> `Entry` 类**没有 `_dispose` / `_start` 这两个方法**：全包 grep `_dispose` 零命中
+> （`src` 与 `lib` 皆无），且 `export class Entry {` 不继承任何基类。因此下文出现的
+> `_dispose(...)` / `_start(...)` 只能当作**语义占位**读，官方等价实现是：
+>
+> | 旧文写法 | 0.2.x 官方等价实现 | 证据 |
+> |---|---|---|
+> | `_dispose(entry/fiber)` | `entry.fiber.dispose()` | `cordis-plugin-loader/src/config/entry.ts:135`、`config/group.ts:40` |
+> | `_start(plugin)` | `entry.init()` → `_init()` 内 `ctx.registry.plugin(plugin, config, getOuterStack).ctx.fiber` | `entry.ts:208-219`（`init`）、`entry.ts:234`（`registry.plugin`） |
+> | 重新装配新 config | `entry.update(options, create, force)` | `entry.ts:116-155` |
+> | 移除 entry | `EntryGroup.remove(id, isDispose = false)` | `group.ts:37-46` |
+> | 等 fiber 初始化完成 | `await fiber.await()` | `cordis/src/fiber.ts:704-710` |
+>
+> 旁证：`dsh-app-boot` 的 `reconcileProfilePatches` 用 `entry.update({config})` 重装配，
+> **全程不碰 `_dispose`**。
+>
+> 运行时 `dsh-bundle` 的 `internal/plugin` hook 仍会给 `fiber.entry` 赋值，
+> 但旧文所谓「`_disposing` 豁免」在 0.2.x 找不到对应实现 —— **不要依赖它**。
+> 另外 `FiberState` 是 `const enum`（数值 0..5，运行时不暴露名字），
+> 插件侧硬编码名字数组是唯一可行做法（`cordis/src/fiber.ts:147-154`）。
+>
+> ⚠️ 另：本文多处引用 `vendor/...` 路径，那是**源码 checkout** 布局；安装版部署里
+> 没有 `vendor/`，对应包在 `node_modules/@deepseek-ai/<pkg>`（见 `scripts/build.sh`）。
 
 ---
 
@@ -14,17 +42,17 @@
 ```
 options 变更 ──┬─ diff 空（且非 force）        → 不动
                ├─ config/inject 热更新          → _patchContext → fiber.update(config)（不重建）
-               ├─ disabled=true                 → _dispose(previous)（_disposing 豁免）
-               ├─ name/inject/group 变化        → REPLACE：import 新模块 → _dispose(旧) → _start(新)
-               │                                 失败 → 自动 rollback：_start(旧模块) + 报 apply 错误
-               └─ 无 fiber（failed/未装配）     → init()：import + _start
+               ├─ disabled=true                 → entry.fiber.dispose()
+               ├─ name/inject/group 变化        → REPLACE：import 新模块 → fiber.dispose() → init()
+               │                                 失败 → 自动 rollback：重新 registry.plugin(旧模块) + 报 apply 错误
+               └─ 无 fiber（failed/未装配）     → init()：import + registry.plugin(...)
 ```
 
 **规范 1.1**：**官方"重载"路径 = entry.update 的 REPLACE 分支**——它内建
-`_disposing` 豁免（loader 的 internal/plugin case 6 不标记 disabled）、
-`entry.fiber` 挂载、失败自动 rollback。注入器的手写 reboot 是它的平行实现，
-必须与它同构：① dispose 前置 `_disposing` ② 新 fiber 必须挂回 `entry.fiber`
-③ 失败必须回滚旧模块。
+`entry.fiber` 挂载、`_patchContext` 差异修补、失败自动 rollback。注入器的手写 reboot
+是它的平行实现，必须与它同构：① dispose 走 `fiber.dispose()` ② 新 fiber 必须挂回
+`entry.fiber`（且与 `registry.plugin` 返回的包装对象一致）③ 失败必须回滚旧模块
+（重新 `registry.plugin(旧模块)`）。
 
 ### 1.2 refresh() 的语义（include 装配）
 
@@ -127,10 +155,11 @@ job 解出的模块才是"同一个"）。跨副本重载时 registry 语义断�
 
 ### 4.3 规范级改进方向（v0.3）
 
-1. **reboot 重构为官方 REPLACE 结构**：直接复用 `entry._start/_dispose`
-   （loader 私有但契约稳定），消除手写 rebuild 的 rollback 缺失
+1. **reboot 重构为官方 REPLACE 结构**：用 `entry.fiber.dispose()` → `entry.init()`
+   （官方公开路径；旧文写的 `entry._start/_dispose` 在 0.2.x 不存在，见顶部更正节），
+   消除手写 rebuild 的 rollback 缺失
 2. **杜绝双 fiber 并存**：rebuild 前确保 `entry.fiber === undefined`
-   （官方 `_dispose` 语义），从源头消灭 duplicate/僵尸
+   （`entry.fiber.dispose()` 之后即为此语义），从源头消灭 duplicate/僵尸
 3. **恢复通道唯一化**：死亡 → touch（已实证）；禁止 kill 进程
 4. **watch 预检 = import 探测**（已实现）：损坏 lib 拒绝重载
 5. **loadCache/registry 跨副本语义文档化**：cloud-restore 等副本部署

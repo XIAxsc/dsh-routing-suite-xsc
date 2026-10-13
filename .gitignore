@@ -7,3 +7,11 @@ preset/probe/dsh-2020-dataset/
 preset/probe/results/
 preset/probe/sessions/
 preset/probe/deepseek-tokenizer/
+# 构建产物不入库（与 install.ps1 / install.sh 的约定一致；由 prepare / build.sh 生成）
+injector/lib/
+# S4 验证用本地工具链与临时产物（可重建，不入库）
+build/toolchain/
+build/.npm-cache/
+build/s4-build/
+build/presets-test/
+build/s4-harness/scratch/

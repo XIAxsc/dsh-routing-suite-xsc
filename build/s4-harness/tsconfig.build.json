@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2023"],
+    "strict": true,
+    "types": ["node"],
+    "typeRoots": ["D:/WorkSpace/AgentWorks/DSH/dsh-routing-suite-xsc/build/toolchain/node_modules/@types"],
+    "declaration": true,
+    "declarationDir": "D:/WorkSpace/AgentWorks/DSH/dsh-routing-suite-xsc/build/s4-build/lib/types",
+    "outDir": "D:/WorkSpace/AgentWorks/DSH/dsh-routing-suite-xsc/build/s4-build/lib",
+    "rootDir": "D:/WorkSpace/AgentWorks/DSH/dsh-routing-suite-xsc/injector/src",
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "sourceMap": true
+  },
+  "include": ["D:/WorkSpace/AgentWorks/DSH/dsh-routing-suite-xsc/injector/src/index.ts"],
+  "exclude": ["D:/WorkSpace/AgentWorks/DSH/dsh-routing-suite-xsc/injector/src/client"]
+}

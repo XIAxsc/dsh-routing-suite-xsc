@@ -15,7 +15,7 @@
  *
  * 用法：
  *  node scripts/fix-patch.mjs                 # 修复全部 profile
- *  node scripts/fix-patch.mjs --profile web   # 只修 web profile
+ *  node scripts/fix-patch.mjs --profile desktop   # 只修指定 profile（profile 名以实际部署为准）
  *  node scripts/fix-patch.mjs --check         # 只检查不写（退出码 0=健康 1=有重复）
  */
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync, renameSync } from 'node:fs'

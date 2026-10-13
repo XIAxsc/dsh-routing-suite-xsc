@@ -33,7 +33,7 @@
 ```bash
 # 占位符按你的环境替换：<NPM_GLOBAL>（npm 全局目录）、<DSH_HOME>（默认 ~/.dsh）、<PLUGIN_DIR>（本插件目录）
 export PATH="<NPM_GLOBAL>:$PATH"
-DSH_HOME='<DSH_HOME>' node <NPM_GLOBAL>/@deepseek-ai/dsh/lib/bin.js plugin --profile web add <PLUGIN_DIR>
+DSH_HOME='<DSH_HOME>' node <NPM_GLOBAL>/@deepseek-ai/dsh/lib/bin.js plugin --profile <profile> add <PLUGIN_DIR>
 # 重启 DSH web
 ```
 

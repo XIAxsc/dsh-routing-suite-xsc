@@ -1,5 +1,40 @@
 # Changelog
 
+## v1.27.1 — DSH 0.2.x 适配修复（未发布）
+
+**修复：preset 引用了已消失的插件包**。三件 preset 共 29 个唯一插件名，其中
+`@deepseek-ai/dsh-workflow-worker-thread` 在 DSH `0.2.0-rc.2` 的 runtime 树中**不存在**
+（`cordis-composition-reference/references/packages.md` 的 `## workflow` 组只剩
+`dsh-tool-ralph` / `dsh-tool-workflow` / `dsh-workflow-ptc`）。官方技能
+`editing-cordis-compositions` 明确警告：
+
+> check each plugin name against `cordis-composition-reference` because
+> **packages renamed since the preset was written fail at activation**
+
+经逐字比对确认为改名为 **`@deepseek-ai/dsh-workflow-ptc`**：其 `lib/index.js:585-586` 的
+`static Config = z.object({ provider: z.string().default("spawn"), … })` 与 preset 行内
+`config: { provider: spawn }` **完全对应**。三件 preset 各改 3 处（`- id:` 与 `name:`），
+共 6 处替换。
+
+**迁移：`.agent-presets/` 旧形态目录已被 DSH 移除**。权威判词
+`editing-cordis-compositions/SKILL.md:70`：
+
+> Before declaration rows, a user preset was a directory `$DSH_HOME/.agent-presets/<id>/`
+> holding `preset.yml` … and `agent.cordis.yml` … **Nothing reads that directory any more.**
+
+（全 runtime 树 grep `\.agent-presets` 仅此 1 处匹配。）自本版起 preset 由
+`scripts/gen-preset-bundle.mjs` 生成 `@deepseek-ai/dsh-agent-preset` 声明式 bundle：
+`<outDir>/cordis.patch.yml` 用 `- insert:` 追加 `preset-<id>` 行，
+`config = { id, name, description, order, plugins }`，其中 `plugins` 由
+`agent.cordis.yml` **逐行文本内联**（语义零改动）。
+
+**唯一真源不变**：`preset/<id>/`（`preset.yml` + `agent.cordis.yml`）仍是真源，
+生成物不入库、不要手改，也不要再往 `.agent-presets/` 复制目录。
+
+验证：`build/verify-preset-bundle.mjs` 用 runtime 自带 YAML 解析器独立复验
+**18/18 PASS** —— 生成 `plugins` 与 `agent.cordis.yml` 的解析结果 **JSON 完全相等**
+（router-standard 19 / router-spec 18 / router-react 18 个顶层 entry）。
+
 ## v1.27.0 — 隔离与并行（注意力工程 · 支柱4）
 
 **支柱4 隔离与并行**：当两个独立关注点污染单线程、或一个子问题吞噬主线预算时，用 subagent/workflow

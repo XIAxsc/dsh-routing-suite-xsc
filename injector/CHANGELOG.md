@@ -5,6 +5,66 @@
 > **版本以 git tag 为准**：已发布 v0.3.1 / v0.3.3（GitHub Releases 资产）；未打 tag 的
 > 小节为开发史（其内容随下一个发布一并交付）。
 
+## [0.3.4] — 未发布（DSH 0.2.x 适配）
+
+### 修复（硬破坏 · 在 DSH 0.2.0-rc.2 上必然失败）
+
+- **`entry._dispose()` 不存在（HARD-1）**：`cordis-plugin-loader@1.0.5` 的 `Entry` 类
+  **没有 `_dispose`**（全包 grep 零命中，`export class Entry {` 也不继承任何基类）。
+  旧守卫 `typeof entry._dispose !== 'function'` 必然抛 `selfEntry 无官方 _dispose（loader 契约缺失）`，
+  自重载/自愈路径**100% 死**。改用官方公开路径 `entry.fiber.dispose()`（loader 自己在
+  `config/entry.ts:135`、`config/group.ts:40` 就用它），随后 `entry.fiber = undefined`。
+- **`registry.delete(fiber)` 传参错误（HARD-2）**：`RegistryService.delete(plugin)` 的入参是
+  **plugin**，不是 fiber；传 fiber 会被 `resolve()` 判为 undefined 从而**静默 no-op**（实测
+  `registry.size` 前后 7→7）。改为 `registry.delete(fiber.runtime.callback)`。
+
+### 修复（语义/配置漂移）
+
+- **profile 路径硬编码 `web`**：`profileNodeModules` 缺省值原为
+  `$DSH_HOME/profiles/web/node_modules`，在 desktop 等 profile 部署里会装错目录。改为三级解析
+  `DSH_PROFILE_DIR` → `$DSH_HOME/profiles/$DSH_PROFILE` → `'web'`。
+- **死槽名 `settings.plugin.item`（单数）**：该槽在 0.2.0-rc.2 全树 0 命中（真实槽是复数
+  `settings.plugins.tab`）。从脚手架自检白名单与活体验证白名单两处移除，避免**误放行**注册到
+  已移除槽位的插件骨架。
+- **脚手架 client 模板用已废的单参形态**：`ctx.slots.register({…, component})` 的第二参才是组件，
+  `options.component` 永不被读取（静默空白）。改为官方两参形态 + `import { createElement } from 'react'`。
+- **裸名 peer 依赖**：`'cordis'` / `'schemastery'` → `'@deepseek-ai/cordis'` / `'@deepseek-ai/schemastery'`
+  （根 `package.json`、脚手架模板、tsdown client externals、`package-lock.json`）。
+
+### 修复（构建链）
+
+- **`scripts/build.sh` 只认源码 checkout**：旧版要求 `$DSH_CHECKOUT/packages` 存在，在任何
+  **安装版部署**里必然 `exit 1`。重写为双形态依赖来源：A) `DSH_CHECKOUT` 源码 checkout
+  （`packages/` + `vendor/`）；B) `DSH_RUNTIME_NODE_MODULES` 已安装 runtime（扁平
+  `<nm>/@deepseek-ai/<pkg>`，缺省时从 `$DSH_HOME/profiles/*/node_modules` 自动探测）。
+- **注入器自身新增 `detectRuntimeNodeModules()` / `detectBuildSource()`**：`dev_build_plugin` 与
+  `dev_self_test` 不再硬依赖 `DSH_CHECKOUT`。
+- **脚手架 `exports["./client"]` 的悬空 types**：去掉 `types: './lib/types/client/index.d.ts'`
+  （tsdown `dts: false` + tsconfig `exclude: ["src/client"]`，该文件永不生成）。
+- **`async execute(args)` 缺参数注解（TS7006）**：全文件 24 处 `execute` 中唯一一处无注解，
+  在 `strict` 下报隐式 any。补为 `args: { dir: string; profile?: string }`。
+- **tsdown client externals**：移除 `@deepseek-ai/dsh-client-runtime/client`（0.2.x 无该包，
+  一旦被 import 宿主会因模块表缺项崩掉插件页）。
+
+### 备注
+
+- **`dsh.client.inject` 中的 `@deepseek-ai/dsh-client-runtime` 保留不动**：`dsh-client-modules`
+  的 `orderByModuleGraph` 只用 `external` 建图边，`inject` 是透传给浏览器工厂的 require 白名单、
+  不参与排序；且**已安装且正常工作的 `dsh-prompt`** 声明与本仓库**逐字相同**。改它反而偏离既有可用形态。
+- **已知未达成**：`prepare` 钩子产出的 `lib/index.js` 仍保留裸导入
+  `@deepseek-ai/dsh-tools` / `@deepseek-ai/schemastery`，与 `tsdown.config.ts` 注释宣称的
+  「零外部依赖」不符（`prepare` 阶段未链接 peer）。实测这些 peer 在部署树里可解析故不阻断；
+  **要真正自包含请走 `scripts/build.sh`**（先链接 peer 再构建）。
+
+### 验证（隔离，未安装到 DSH）
+
+| 层 | 手段 | 结果 |
+|----|------|------|
+| 契约 | `scripts/verify-contract.mjs`（当场 require 安装版 runtime） | **57 / 57** |
+| 装配 | `build/s4-harness/assemble.mjs`（真实 loader，dist / tsc / src 三目标） | **26 / 26 × 3** |
+| 类型/构建 | `tsc --noEmit` / `tsc --noCheck` | 无代码级错误；产物可装配 |
+| client | `build/s4-harness/client-smoke.mjs`（vm 模拟模块表，无浏览器） | **18 / 18** |
+
 ## [0.3.3] — 2026-08-15（已发布，git tag v0.3.3）
 
 ### 更新（高性能引导升级为 P1-P23 完整认知）

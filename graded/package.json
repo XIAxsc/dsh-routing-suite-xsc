@@ -6,15 +6,9 @@
   "private": false,
   "type": "module",
   "main": "./lib/index.js",
-  "types": "./lib/types/index.d.ts",
   "exports": {
-    ".": {
-      "types": "./lib/types/index.d.ts",
-      "default": "./lib/index.js"
-    },
-    "./client": {
-      "default": "./lib/client.js"
-    },
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
     "./package.json": "./package.json"
   },
   "files": [
@@ -26,7 +20,7 @@
     "cordis.patch.yml"
   ],
   "engines": {
-    "dsh": ">=0.0.1-rc"
+    "node": ">=22"
   },
   "dependencies": {
     "@deepseek-ai/schemastery": "^3.18.2"

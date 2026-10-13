@@ -15,12 +15,18 @@
 
 param(
   [string]$PackageDir = '',
-  [string]$Profile = 'web',
+  [string]$Profile = '',
   [switch]$NoRestart
 )
 
 $ErrorActionPreference = 'Stop'
 $pkgName = '@dsh-external/dsh-super-injector'
+
+# profile 解析（DSH 0.2.x 适配）：显式 -Profile > $env:DSH_PROFILE > 'web'。
+# 旧版把默认值钉成 'web'，在 desktop 等其它 profile 的部署里会装错目录。
+if (-not $Profile) {
+  $Profile = if ($env:DSH_PROFILE) { $env:DSH_PROFILE } else { 'web' }
+}
 
 # ── 0. 定位 ──────────────────────────────────────────────────────────────
 if (-not $PackageDir) {
